@@ -3,13 +3,14 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.gridlayout.widget.GridLayout;
 import android.content.res.Resources;
 import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
+import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.os.Handler;
 import android.util.Log;
 import android.view.View;
 import android.widget.TextView;
 
-import org.w3c.dom.Text;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -55,7 +56,8 @@ public class MainActivity extends AppCompatActivity {
     private static final int COLUMN_COUNT = 10;
     private static final int ROW_COUNT = 12;
     private int clock = 0;
-    private static final int NUM_MINES = 10;
+    private static final int NUM_MINES = 3;
+    private int flagsRemaining = NUM_MINES;
 
     GameStatus gameStatus = GameStatus.NOTSTARTED;
     Set<Pair> mines;
@@ -79,12 +81,43 @@ public class MainActivity extends AppCompatActivity {
     private void gameOver() {
         gameStatus = GameStatus.GAMEOVER;
         clock = 0;
-        // TODO: reveal mines
+        flagsRemaining = NUM_MINES;
+
+        // reveal mines
         GridLayout gridLayout = findViewById(R.id.square);
         for (Pair mine: mines) {
             TextView tv = gridLayout.findViewById(mine.id);
             tv.setBackgroundColor(Color.RED);
         }
+    }
+
+    public boolean onFlagTV(View view) {
+        switch (gameStatus) {
+            case NOTSTARTED:
+                gameStatus = GameStatus.STARTED;
+                break;
+
+            case GAMEOVER:
+                // show game over
+                break;
+        }
+
+        TextView tv = (TextView) view;
+
+        Drawable backgroundDrawable = tv.getBackground();
+        int backgroundColor = ((ColorDrawable) backgroundDrawable).getColor();
+        if (backgroundColor == Color.GRAY && flagsRemaining > 0) {
+            tv.setBackgroundColor(Color.BLUE);
+            flagsRemaining--;
+        } else if (backgroundColor == Color.BLUE) {
+            tv.setBackgroundColor(Color.GRAY);
+            flagsRemaining++;
+        }
+
+        final TextView timeView = findViewById(R.id.mineStatus);
+        timeView.setText(String.valueOf(flagsRemaining));
+
+        return true;
     }
 
     public void onClickTV(View view){
@@ -102,6 +135,13 @@ public class MainActivity extends AppCompatActivity {
         int n = findIndexOfCellTextView(tv);
         int i = n/COLUMN_COUNT;
         int j = n%COLUMN_COUNT;
+
+        // if flagged, do nothing
+        Drawable backgroundDrawable = tv.getBackground();
+        int backgroundColor = ((ColorDrawable) backgroundDrawable).getColor();
+        if (backgroundColor == Color.BLUE) {
+            return;
+        }
 
         // if mine is selected
         if (mines.contains(new Pair(i,j))) {
@@ -123,7 +163,6 @@ public class MainActivity extends AppCompatActivity {
         if (adjacentMines > 0) {
             tv.setText(String.valueOf(adjacentMines));
         }
-
     }
 
     @Override
@@ -133,6 +172,10 @@ public class MainActivity extends AppCompatActivity {
 
         cell_tvs = new ArrayList<>();
         mines = randomMineGenerator();
+
+        // display flag count
+        final TextView timeView = findViewById(R.id.mineStatus);
+        timeView.setText(String.valueOf(flagsRemaining));
 
         GridLayout grid = findViewById(R.id.square);
 
@@ -147,6 +190,7 @@ public class MainActivity extends AppCompatActivity {
                 tv.setBackgroundColor(Color.GRAY);
                 tv.setId(i*12 + j);
                 tv.setOnClickListener(this::onClickTV);
+                tv.setOnLongClickListener(this::onFlagTV);
 
                 GridLayout.LayoutParams lp = new GridLayout.LayoutParams();
                 lp.setMargins(dpToPixel(2), dpToPixel(2), dpToPixel(2), dpToPixel(2));
