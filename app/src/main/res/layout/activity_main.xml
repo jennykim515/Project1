@@ -5,11 +5,14 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:label="@string/app_name"
+    android:layout_marginStart="32dp"
+    android:layout_marginEnd="32dp"
     tools:context=".MainActivity">
 
     <LinearLayout
         android:layout_width="match_parent"
-
+        android:orientation="horizontal"
+        android:layout_marginTop="30dp"
         android:layout_height="match_parent">
         <TextView
             android:id="@+id/timer"
@@ -29,14 +32,12 @@
 
     </LinearLayout>
 
+
     <androidx.gridlayout.widget.GridLayout
         android:id="@+id/square"
         android:layout_width="wrap_content"
         android:layout_height="match_parent"
-        android:layout_marginStart="32dp"
-        android:layout_marginTop="50dp"
-        android:layout_marginEnd="32dp"
-        android:layout_marginBottom="32dp"
+        android:layout_marginTop="75dp"
         android:layout_gravity="center"
         app:rowCount="12"
         app:columnCount="10"
@@ -44,7 +45,27 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        >
+    >
     </androidx.gridlayout.widget.GridLayout>
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:layout_constraintBottom_toBottomOf="@+id/square"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:orientation="vertical"
+        android:layout_marginBottom="75dp"
+    >
+        <Button
+            android:id="@+id/modeSwitch"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/gameMode" />
+    </LinearLayout>
+
+
+
+
 
 </androidx.constraintlayout.widget.ConstraintLayout>

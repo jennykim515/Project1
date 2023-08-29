@@ -2,4 +2,5 @@
     <string name="app_name">CS310 Jenny Kim</string>
     <string name="mineStatus" />
     <string name="timer" />
+    <string name="gameMode" />
 </resources>

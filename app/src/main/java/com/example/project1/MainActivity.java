@@ -9,6 +9,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.util.Log;
 import android.view.View;
+import android.widget.Button;
 import android.widget.TextView;
 
 
@@ -60,6 +61,7 @@ public class MainActivity extends AppCompatActivity {
     private int flagsRemaining = NUM_MINES;
 
     GameStatus gameStatus = GameStatus.NOTSTARTED;
+    GameMode gameMode = GameMode.DIGGING;
     Set<Pair> mines;
     int[][] neighbors = { {-1,-1}, {-1,0}, {-1,1}, {1,-1}, {1,0}, {1,1}, {0,-1}, {0,1} };
 
@@ -91,43 +93,29 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    public boolean onFlagTV(View view) {
-        switch (gameStatus) {
-            case NOTSTARTED:
-                gameStatus = GameStatus.STARTED;
-                break;
+    public void onButtonClick(View view) {
+        Button button = findViewById(R.id.modeSwitch);
 
-            case GAMEOVER:
-                // show game over
+        switch (gameMode) {
+            case DIGGING:
+                gameMode = GameMode.FLAGGING;
+                button.setText(gameMode.name());
+                break;
+            case FLAGGING:
+                gameMode = GameMode.DIGGING;
+                button.setText(gameMode.name());
                 break;
         }
-
-        TextView tv = (TextView) view;
-
-        Drawable backgroundDrawable = tv.getBackground();
-        int backgroundColor = ((ColorDrawable) backgroundDrawable).getColor();
-        if (backgroundColor == Color.GRAY && flagsRemaining > 0) {
-            tv.setBackgroundColor(Color.BLUE);
-            flagsRemaining--;
-        } else if (backgroundColor == Color.BLUE) {
-            tv.setBackgroundColor(Color.GRAY);
-            flagsRemaining++;
-        }
-
-        final TextView timeView = findViewById(R.id.mineStatus);
-        timeView.setText(String.valueOf(flagsRemaining));
-
-        return true;
     }
 
-    public void onClickTV(View view){
+    public void onClickTV(View view) {
         switch (gameStatus) {
             case NOTSTARTED:
                 gameStatus = GameStatus.STARTED;
                 break;
 
             case GAMEOVER:
-                // show game over
+                // TODO: show game over
                 break;
         }
 
@@ -139,29 +127,47 @@ public class MainActivity extends AppCompatActivity {
         // if flagged, do nothing
         Drawable backgroundDrawable = tv.getBackground();
         int backgroundColor = ((ColorDrawable) backgroundDrawable).getColor();
-        if (backgroundColor == Color.BLUE) {
-            return;
-        }
 
-        // if mine is selected
-        if (mines.contains(new Pair(i,j))) {
-            Log.d("myTag", "MINE SELECTED");
-            tv.setBackgroundColor(Color.RED);
-            gameOver();
-            return;
-        }
+        switch (gameMode) {
+            case DIGGING:
+                if (backgroundColor == Color.BLUE) {
+                    return;
+                }
 
-        tv.setTextColor(Color.GREEN);
+                // if mine is selected
+                if (mines.contains(new Pair(i,j))) {
+                    Log.d("myTag", "MINE SELECTED");
+                    tv.setBackgroundColor(Color.RED);
+                    gameOver();
+                    return;
+                }
 
-        int adjacentMines = 0;
-        for (int[] neighbor : neighbors) {
-            if (mines.contains(new Pair(neighbor[0] + i, neighbor[1] + j))) {
-                adjacentMines++;
-            }
-        }
+                tv.setTextColor(Color.GREEN);
 
-        if (adjacentMines > 0) {
-            tv.setText(String.valueOf(adjacentMines));
+                // check for mines adjacent
+                int adjacentMines = 0;
+                for (int[] neighbor : neighbors) {
+                    if (mines.contains(new Pair(neighbor[0] + i, neighbor[1] + j))) {
+                        adjacentMines++;
+                    }
+                }
+
+                if (adjacentMines > 0) {
+                    tv.setText(String.valueOf(adjacentMines));
+                }
+                break;
+            case FLAGGING:
+                if (backgroundColor == Color.GRAY && flagsRemaining > 0) {
+                    tv.setBackgroundColor(Color.BLUE);
+                    flagsRemaining--;
+                } else if (backgroundColor == Color.BLUE) {
+                    tv.setBackgroundColor(Color.GRAY);
+                    flagsRemaining++;
+                }
+
+                final TextView timeView = findViewById(R.id.mineStatus);
+                timeView.setText(String.valueOf(flagsRemaining));
+                break;
         }
     }
 
@@ -172,6 +178,10 @@ public class MainActivity extends AppCompatActivity {
 
         cell_tvs = new ArrayList<>();
         mines = randomMineGenerator();
+
+        Button button = (Button) findViewById(R.id.modeSwitch);
+        button.setOnClickListener(this::onButtonClick);
+        button.setText(gameMode.name());
 
         // display flag count
         final TextView timeView = findViewById(R.id.mineStatus);
@@ -190,7 +200,6 @@ public class MainActivity extends AppCompatActivity {
                 tv.setBackgroundColor(Color.GRAY);
                 tv.setId(i*12 + j);
                 tv.setOnClickListener(this::onClickTV);
-                tv.setOnLongClickListener(this::onFlagTV);
 
                 GridLayout.LayoutParams lp = new GridLayout.LayoutParams();
                 lp.setMargins(dpToPixel(2), dpToPixel(2), dpToPixel(2), dpToPixel(2));
