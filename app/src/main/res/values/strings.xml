@@ -3,4 +3,6 @@
     <string name="mineStatus" />
     <string name="timer" />
     <string name="gameMode" />
+    <string name="endScreen">Game Over</string>
+    <string name="playAgainButton">Play Again</string>
 </resources>

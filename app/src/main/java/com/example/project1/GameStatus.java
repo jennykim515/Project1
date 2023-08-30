@@ -1,6 +1,6 @@
 package com.example.project1;
 
 public enum GameStatus {
-    NOTSTARTED, STARTED, GAMEOVER
+    NOT_STARTED, STARTED, GAME_LOST, GAME_WON
 }
 

@@ -1,6 +1,8 @@
 package com.example.project1;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.gridlayout.widget.GridLayout;
+
+import android.content.Intent;
 import android.content.res.Resources;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
@@ -15,6 +17,7 @@ import android.widget.TextView;
 
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.Set;
 import java.util.Collections;
 
@@ -60,12 +63,17 @@ public class MainActivity extends AppCompatActivity {
     private static final int NUM_MINES = 3;
     private int flagsRemaining = NUM_MINES;
 
-    GameStatus gameStatus = GameStatus.NOTSTARTED;
+    static GameStatus gameStatus = GameStatus.NOT_STARTED;
     GameMode gameMode = GameMode.DIGGING;
     Set<Pair> mines;
     int[][] neighbors = { {-1,-1}, {-1,0}, {-1,1}, {1,-1}, {1,0}, {1,1}, {0,-1}, {0,1} };
 
     private ArrayList<TextView> cell_tvs;
+
+    public static GameStatus getGameStatus() {
+        return gameStatus;
+    }
+    public static void setGameStatus(GameStatus g) {gameStatus = g;}
 
     private int dpToPixel(int dp) {
         float density = Resources.getSystem().getDisplayMetrics().density;
@@ -81,7 +89,6 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void gameOver() {
-        gameStatus = GameStatus.GAMEOVER;
         clock = 0;
         flagsRemaining = NUM_MINES;
 
@@ -91,6 +98,10 @@ public class MainActivity extends AppCompatActivity {
             TextView tv = gridLayout.findViewById(mine.id);
             tv.setBackgroundColor(Color.RED);
         }
+
+        // display end screen
+        Intent intent = new Intent(this, ResultsActivity.class);
+        startActivity(intent);
     }
 
     public void onButtonClick(View view) {
@@ -107,22 +118,15 @@ public class MainActivity extends AppCompatActivity {
                 break;
         }
     }
-
     public void onClickTV(View view) {
-        switch (gameStatus) {
-            case NOTSTARTED:
-                gameStatus = GameStatus.STARTED;
-                break;
-
-            case GAMEOVER:
-                // TODO: show game over
-                break;
+        if (Objects.requireNonNull(gameStatus) == GameStatus.NOT_STARTED) {
+            gameStatus = GameStatus.STARTED;
         }
 
         TextView tv = (TextView) view;
         int n = findIndexOfCellTextView(tv);
-        int i = n/COLUMN_COUNT;
-        int j = n%COLUMN_COUNT;
+        int i = n / COLUMN_COUNT;
+        int j = n % COLUMN_COUNT;
 
         // if flagged, do nothing
         Drawable backgroundDrawable = tv.getBackground();
@@ -134,10 +138,11 @@ public class MainActivity extends AppCompatActivity {
                     return;
                 }
 
-                // if mine is selected
+                // if mine is selected, game over
                 if (mines.contains(new Pair(i,j))) {
                     Log.d("myTag", "MINE SELECTED");
                     tv.setBackgroundColor(Color.RED);
+                    gameStatus = GameStatus.GAME_LOST;
                     gameOver();
                     return;
                 }
@@ -165,6 +170,7 @@ public class MainActivity extends AppCompatActivity {
                     flagsRemaining++;
                 }
 
+                // change number of flags
                 final TextView timeView = findViewById(R.id.mineStatus);
                 timeView.setText(String.valueOf(flagsRemaining));
                 break;
@@ -189,6 +195,7 @@ public class MainActivity extends AppCompatActivity {
 
         GridLayout grid = findViewById(R.id.square);
 
+        // format each cell of grid
         for (int i = 0; i < ROW_COUNT; i++) {
             for (int j = 0; j < COLUMN_COUNT; j++) {
                 TextView tv = new TextView(this);
@@ -198,18 +205,21 @@ public class MainActivity extends AppCompatActivity {
                 tv.setTextAlignment(TextView.TEXT_ALIGNMENT_CENTER);
                 tv.setTextColor(Color.GRAY);
                 tv.setBackgroundColor(Color.GRAY);
-                tv.setId(i*12 + j);
-                tv.setOnClickListener(this::onClickTV);
 
+                // set id for each cell
+                tv.setId(i*12 + j);
+
+                // set listener for each cell
+                tv.setOnClickListener(this::onClickTV);
                 GridLayout.LayoutParams lp = new GridLayout.LayoutParams();
                 lp.setMargins(dpToPixel(2), dpToPixel(2), dpToPixel(2), dpToPixel(2));
                 lp.rowSpec = GridLayout.spec(i);
                 lp.columnSpec = GridLayout.spec(j);
-
                 grid.addView(tv, lp);
                 cell_tvs.add(tv);
             }
         }
+        // start timer
         runTimer();
     }
 
