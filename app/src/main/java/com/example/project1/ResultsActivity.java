@@ -15,19 +15,17 @@ public class ResultsActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_results);
 
-//        Intent intent = getIntent();
         TextView textView = (TextView) findViewById(R.id.endScreen);
-        if(MainActivity.getGameStatus() == GameStatus.GAME_LOST) {
-            textView.setText("You lost");
-        } else {
-            textView.setText("Used X Seconds. You won!");
-        }
+        textView.setTextSize(32);
+
+        Intent intent = getIntent();
+        String msg = intent.getStringExtra("result");
+        textView.setText(msg);
 
         Button playAgainBtn = (Button) findViewById(R.id.playAgainBtn);
         playAgainBtn.setOnClickListener(this::onButtonClick);
     }
     public void onButtonClick(View view) {
-        MainActivity.setGameStatus(GameStatus.NOT_STARTED);
         Intent intent = new Intent(this, MainActivity.class);
         startActivity(intent);
     }
