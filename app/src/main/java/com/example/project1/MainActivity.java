@@ -15,6 +15,8 @@ import android.widget.Button;
 import android.widget.TextView;
 
 
+import org.w3c.dom.Text;
+
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -62,23 +64,15 @@ public class MainActivity extends AppCompatActivity {
     private final int COLUMN_COUNT = 10;
     private final int ROW_COUNT = 12;
     private int clock = 0;
-    private final int NUM_MINES = 50;
+    private final int NUM_MINES = 4;
     private int flagsRemaining = NUM_MINES;
 
     GameStatus gameStatus = GameStatus.NOT_STARTED;
     GameMode gameMode = GameMode.DIGGING;
     Set<Pair> mines;
+    Set<Integer> flagged;
     int[][] neighbors = { {-1,-1}, {-1,0}, {-1,1}, {1,-1}, {1,0}, {1,1}, {0,-1}, {0,1} };
-
     private ArrayList<TextView> cell_tvs;
-
-    public GameStatus getGameStatus() {
-        return gameStatus;
-    }
-
-    public int getClock() {
-        return clock;
-    }
 
     private int dpToPixel(int dp) {
         float density = Resources.getSystem().getDisplayMetrics().density;
@@ -93,14 +87,15 @@ public class MainActivity extends AppCompatActivity {
         return -1;
     }
 
-    private void gameOver() {
-        // reveal mines
+    private void revealMines() {
+    // reveal mines
         GridLayout gridLayout = findViewById(R.id.square);
-        for (Pair mine: mines) {
+        for (Pair mine : mines) {
             TextView tv = gridLayout.findViewById(mine.id);
             tv.setBackgroundColor(Color.RED);
         }
-
+    }
+    private void gameOver() {
         // display end screen
         Intent intent = new Intent(this, ResultsActivity.class);
         if( gameStatus == GameStatus.GAME_LOST ) {
@@ -117,20 +112,23 @@ public class MainActivity extends AppCompatActivity {
         switch (gameMode) {
             case DIGGING:
                 gameMode = GameMode.FLAGGING;
-                button.setText(gameMode.name());
+                button.setText(R.string.flag);
                 break;
             case FLAGGING:
                 gameMode = GameMode.DIGGING;
-                button.setText(gameMode.name());
+                button.setText(R.string.pick);
                 break;
         }
     }
 
     private boolean withinBounds(int i, int j) {
+//        TextView tv = findViewById(i*12 + j);
+
+
         return 0 <= i && i < ROW_COUNT && 0 <= j && j < COLUMN_COUNT;
     }
 
-    private void setMines(int i, int j) {
+    private int getNumAdjacentMines(int i, int j) {
         int adjacentMines = 0;
         for (int[] neighbor : neighbors) {
             Pair explore = new Pair(neighbor[0] + i, neighbor[1] + j);
@@ -139,16 +137,66 @@ public class MainActivity extends AppCompatActivity {
                 adjacentMines++;
             }
         }
+        return adjacentMines;
+    }
+
+    private void setMines(int i, int j) {
+        int adjacentMines = getNumAdjacentMines(i,j);
+        TextView v = findViewById(i * 12 + j);
+        v.setBackgroundColor(Color.DKGRAY);
 
         if (adjacentMines > 0) {
-            TextView v = findViewById(i * 12 + j);
+            v.setTextColor(Color.WHITE);
             v.setText(Integer.toString(adjacentMines));
+            checkForWin();
+            return;
+        }
+
+        // if adjacent mines is 0, continue
+        Queue<Pair> queue = new LinkedList<>();
+        queue.add(new Pair(i,j));
+        Set<Integer> visited = new HashSet<>();
+        visited.add(i * 12 + j);
+
+        while (! queue.isEmpty()) {
+            Pair currNode = queue.peek();
+            queue.remove();
+
+            for (int[] neighbor : neighbors) {
+                int neighborID = (neighbor[0] + currNode.i) * 12 + neighbor[1] + currNode.j;
+                if(visited.contains(neighborID) || flagged.contains(neighborID) || !withinBounds(neighbor[0] + currNode.i, neighbor[1] + currNode.j)) {
+                    continue;
+                }
+
+                Pair explore = new Pair(neighbor[0] + currNode.i, neighbor[1] + currNode.j);
+                adjacentMines = getNumAdjacentMines(explore.i, explore.j);
+
+                if (adjacentMines > 0) {
+                    v = findViewById(explore.i * 12 + explore.j);
+                    v.setBackgroundColor(Color.DKGRAY);
+                    v.setTextColor(Color.WHITE);
+                    v.setText(Integer.toString(adjacentMines));
+                    checkForWin();
+                    continue;
+                }
+
+                visited.add(neighborID);
+                queue.add(explore);
+
+                TextView currView = findViewById(neighborID);
+                currView.setBackgroundColor(Color.DKGRAY);
+            }
         }
     }
 
     public void onClickTV(View view) {
         if (Objects.requireNonNull(gameStatus) == GameStatus.NOT_STARTED) {
             gameStatus = GameStatus.STARTED;
+        }
+        // game over
+        else if(Objects.requireNonNull(gameStatus) == GameStatus.GAME_LOST || Objects.requireNonNull(gameStatus) == GameStatus.GAME_WON) {
+            gameOver();
+            return;
         }
 
         TextView tv = (TextView) view;
@@ -171,22 +219,21 @@ public class MainActivity extends AppCompatActivity {
                     Log.d("myTag", "MINE SELECTED");
                     tv.setBackgroundColor(Color.RED);
                     gameStatus = GameStatus.GAME_LOST;
-                    gameOver();
+                    revealMines();
                     return;
                 }
 
-                tv.setTextColor(Color.GREEN);
-
                 // check for mines adjacent
-                tv.setBackgroundColor(Color.DKGRAY);
-
+                setMines(i,j);
                 break;
             case FLAGGING:
                 if (backgroundColor == Color.GRAY && flagsRemaining > 0) {
                     tv.setBackgroundColor(Color.BLUE);
                     flagsRemaining--;
+                    flagged.add(i * 12 + j);
                 } else if (backgroundColor == Color.BLUE) {
                     tv.setBackgroundColor(Color.GRAY);
+                    flagged.remove(i * 12 + j);
                     flagsRemaining++;
                 }
 
@@ -195,15 +242,21 @@ public class MainActivity extends AppCompatActivity {
                 timeView.setText(String.valueOf(flagsRemaining));
                 break;
         }
+        checkForWin();
     }
 
     private void generateNewGame() {
         cell_tvs = new ArrayList<>();
         mines = randomMineGenerator();
+        flagged = new HashSet<>();
 
         Button button = (Button) findViewById(R.id.modeSwitch);
         button.setOnClickListener(this::onButtonClick);
-        button.setText(gameMode.name());
+        if(gameMode == GameMode.DIGGING) {
+            button.setText(R.string.pick);
+        } else {
+            button.setText(R.string.flag);
+        }
 
         // display flag count
         final TextView timeView = findViewById(R.id.mineStatus);
@@ -259,7 +312,8 @@ public class MainActivity extends AppCompatActivity {
                 int hours =clock/3600;
                 int minutes = (clock%3600) / 60;
                 int seconds = clock%60;
-                String time = String.format("%d", seconds);
+
+                String time = String.format("%02d:%02d", minutes, seconds);
 
                 if (gameStatus == GameStatus.STARTED) {
                     clock++;
@@ -287,5 +341,26 @@ public class MainActivity extends AppCompatActivity {
         }
 
         return mines;
+    }
+
+    private void checkForWin() {
+        if (flagsRemaining != 0) {
+            return;
+        }
+
+        for (int i = 0; i < ROW_COUNT; i++) {
+            for (int j = 0; j < COLUMN_COUNT; j++) {
+                TextView tv = findViewById(i*12 + j);
+                Drawable backgroundDrawable = tv.getBackground();
+                int backgroundColor = ((ColorDrawable) backgroundDrawable).getColor();
+                if(backgroundColor == Color.GRAY) {
+                    return;
+                }
+            }
+        }
+
+        gameStatus = GameStatus.GAME_WON;
+        revealMines();
+//        gameOver();
     }
 }
