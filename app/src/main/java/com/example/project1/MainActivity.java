@@ -229,10 +229,13 @@ public class MainActivity extends AppCompatActivity {
             case FLAGGING:
                 if (backgroundColor == Color.GRAY && flagsRemaining > 0) {
                     tv.setBackgroundColor(Color.BLUE);
+                    // set flag emoji
+                    tv.setText(new String(Character.toChars(0x1F6A9)));
                     flagsRemaining--;
                     flagged.add(i * 12 + j);
                 } else if (backgroundColor == Color.BLUE) {
                     tv.setBackgroundColor(Color.GRAY);
+                    tv.setText("");
                     flagged.remove(i * 12 + j);
                     flagsRemaining++;
                 }
